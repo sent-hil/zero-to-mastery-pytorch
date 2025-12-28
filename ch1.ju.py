@@ -2,359 +2,121 @@
 """
 # Zero to Mastery in PyTorch
 
-## Ch 0: PyTorch Fundamentals
+## Ch 1: PyTorch Workflow Fundamentals
 
-[Link](https://www.learnpytorch.io/00_pytorch_fundamentals/#introduction-to-tensors)
+[Link](https://www.learnpytorch.io/01_pytorch_workflow)
+
+### Pytorch Workflow
+    * Get dat aready (turn into tensors).
+    * Build or pick a pretrained model.
+    * Fit the model to the data and make a prediction.
+    * Evaluate the model.
+    * Improve through experimentation.
+    * Save and reload your trained model.
 """
 
 # %%
 import torch
-
-torch.__version__
-
-# %% [markdown]
-"""
-## Scalar
-
-Scalar is a single number and a zero dimension tensor.
-"""
-
-# %%
-scalar = torch.tensor(data=7)
-scalar, scalar.ndim  # check dimensions
-
-# %%
-scalar = torch.tensor(data=-1)
-scalar.item()
+from torch import nn
+import matplotlib.pyplot as plt
 
 # %% [markdown]
 """
-## Vectors
-
-Vector is a single dimension tensor.
-
-You can tell number of dimensions in an tensor by number of square
-brackets on the outside.
+Machine learning is a game of two parts:
+    * Turn your data (whatever it may be) into numbers (a representation).
+    * Pick or build a model to learn the representation as best as possible.
 """
 
 # %%
-vector = torch.tensor(data=[7, 7])
-vector, vector.ndim, vector.shape
-# print(vector.item()) # will error
+weight = 0.7
+bias = 0.3
+
+start = 0
+end = 1
+step = 0.02
+X = torch.arange(start=start, end=end, step=step)
+X = X.unsqueeze(dim=1)
+y = weight * X + bias  # X is features, y is labels
+
+X[:10], y[:10]
+
+# %%
+len(X), len(y), 1
 
 # %% [markdown]
 """
-## Matrix
+### Split data into training and test sets
 
-Matrix is a two dimension tensor.
+* Training set - model learns from this data (60-80% of data).
+* Validation set - model gets tuned on this data (10-20%).
+* Test set - model gets evaluated on this data (10-20%).
 """
 
 # %%
-matrix = torch.tensor(data=[[7, 8], [9, 10]])
-matrix, matrix.ndim, matrix.shape
+train_split = int(0.8 * len(X))
+X_train, y_train = X[:train_split], y[:train_split]
+X_test, y_test = X[train_split:], y[train_split:]
+len(X_train), len(y_train), len(X_test), len(y_test)
+
+
+# %%
+def plot_predictions(
+    train_data=X_train,
+    train_labels=y_train,
+    test_data=X_test,
+    test_labels=y_test,
+    predictions=None,
+):
+    plt.figure(figsize=(10, 7))
+    plt.scatter(train_data, train_labels, c="b", s=4, label="Training data")
+    plt.scatter(test_data, test_labels, c="g", s=4, label="Testing data")
+    if predictions is not None:
+        plt.scatter(test_data, predictions, c="r", s=4, label="Predictions")
+
+    plt.legend(prop={"size": 14})
+
+
+# %%
+plot_predictions()
+
+
+# %%
+class LinearRegressionModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.weights = nn.Parameter(
+            torch.randn(1, dtype=torch.float, requires_grad=True)
+        )
+        self.bias = nn.Parameter(torch.randn(1, dtype=torch.float, requires_grad=True))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.weights * x + self.bias
+
 
 # %% [markdown]
 """
-## Tensor
+## Pytorch model building essentials
 
-Tensor is an n-dimension array.
-
-Matrix and Tensor are denoted with uppercase letters, while scalar and
-vector are denoted with lowercase letters.
+Pytorch has 4 essentials modules for neural networks:
+    * torch.nn - contians building blocks for computational graphs.
+        * torch.nn.Paramater - Stores tensors that can be used with
+        nn.Module. If requires_grade=True, gradients are calculated
+        automatically, this is often referred to as 'autograd'.
+        * torch.nn.Module - Base class for all neural network modules.
+        If you're building a neural network, subclass torch.nn.Module.
+        Requires forward method to be implemented.
+    * torch.optim - Contains various optimization algos, these tell
+    nn.Parameter how best to improve gradient descent and in turn reduce
+    the loss.
+    * torch.utils.data.Dataset
+    * torch.utils.data.DataLoader
 """
 
 # %%
-_3d_tensor = torch.tensor(
-    data=[
-        [[1, 2, 3], [4, 5, 6]],
-        [[7, 8, 9], [10, 11, 12]],
-        [[13, 14, 15], [16, 17, 18]],
-    ]
-)
-_3d_tensor, _3d_tensor.ndim, _3d_tensor.shape
-
-# %% [markdown]
-"""
-Machine learning models often start out with large random tensor of
-number and adjust these random numbers as it works through data to better
-represent it.
-"""
+torch.manual_seed(seed=42)
+model_0 = LinearRegressionModel()
+list(model_0.parameters())
 
 # %%
-# create random tensor of dimension 2 (default dtype is float32)
-random_tensor = torch.rand(size=(3, 4))
-random_tensor
-
-# %%
-# create random tensor of dimension 3 with float16
-random_tensor2 = torch.rand(size=(3, 4, 4), dtype=torch.float16)
-random_tensor2.shape, random_tensor2.dtype
-
-# %% [markdown]
-"""
-## Upper/lower triangular matrix
-"""
-
-# %%
-# return upper triangular part of random tensor
-torch.tril(input=random_tensor)
-
-# %%
-# return upper triangular part of random tensor
-torch.tril(input=random_tensor)
-
-# %% [markdown]
-"""
-## Zeros and Ones
-"""
-
-# %%
-# create a tensor of all zeros
-zeros = torch.zeros(size=(2, 3))
-zeros, zeros.dtype
-
-# %%
-# create a tensor of all zeros
-ones = torch.ones(size=(2, 3))
-ones, ones.dtype
-
-# %% [markdown]
-"""
-### Creating tensor from range
-"""
-
-# %%
-zero_to_ten = torch.arange(start=0, end=20, step=2)
-zero_to_ten
-
-# %% [markdown]
-"""
-### Creating a zero/one tensor with the same shape as another tensor
-"""
-
-# %%
-m = torch.arange(start=0, end=10, step=1)
-torch.zeros_like(input=m)  # creates zeros tensor with the same shape as m
-
-# %%
-m = torch.arange(start=0, end=10, step=1)
-torch.ones_like(input=m)  # creates ones tensor with the same shape as m
-
-# %% [markdown]
-"""
-### Reshaping a tensor
-"""
-
-# %%
-m = torch.arange(start=0, end=10, step=1)
-m.reshape(2, 5)
-
-# %% [markdown]
-"""
-### When running into issue with pytorch, ask the following:
-1. What is the shape of my tensor?
-2. What is the datatype of my tensor?
-3. Which device is my tensor on?
-"""
-
-# %%
-some_tensor = torch.rand(1, 2)
-
-# Find out details about it
-print(some_tensor)
-print(f"Shape of tensor: {some_tensor.shape}")
-print(f"Datatype of tensor: {some_tensor.dtype}")
-print(f"Device tensor is stored on: {some_tensor.device}")  # will default to CPU
-
-# %% [markdown]
-"""
-## Basic operations
-"""
-
-# %%
-tensor = torch.tensor(data=[1, 2, 3])
-tensor + 10
-
-# %%
-tensor = torch.tensor(data=[1, 2, 3])
-tensor * 10
-
-# %%
-tensor = torch.tensor(data=[1, 2, 3])
-tensor * 10
-tensor  # original tensor is unchanged
-
-# %%
-tensor = torch.tensor(data=[1, 2, 3])
-torch.mul(input=tensor, other=10)
-
-# %%
-tensor = torch.tensor(data=[1, 2, 3])
-tensor * 10  # * is shorthand for multiply
-
-# %% [markdown]
-"""
-### Matrix multiplication (aka dot product)
-
-Two rules:
-
-1. The inner dimensions must match.
-    * (3, 2) @ (3, 2) won't work because 2 != 3.
-    * (3, 2) @ (2, 4) will work because 2 == 2.
-2. Resulting matrix has shape of outer dimensions.
-    * (3, 2) @ (2, 4) = (3, 4) aka 3 rows and 4 columns.
-
-@ is shorthand for matrix multiplication.
-
-Element wise multiplication doesn't add the values, opposed to matrix
-multiplication.
-
-#### Example:
-    t = torch.tensor([1,2,3])
-
-Element wise multiplication:
-
-    t*t = [1*1, 2*2, 3*3]) = [1, 4, 9]
-    t.mul(t) = [1*1, 2*2, 3*3]) = [1, 4, 9]
-
-Matrix multiplication:
-
-    t @ t = [1*1 + 2*2 + 3*3] = 14
-"""
-
-# %%
-tensor = torch.tensor(data=[1, 2, 3])
-tensor @ tensor
-
-# %%
-t1 = torch.tensor(data=[1, 2])  # shape (2,)
-t2 = torch.tensor(data=[[4, 5], [7, 8]])  # shape (2,2)
-t1 * t2  # works because of broadcasting
-
-# %%
-# Element wise multiplication
-t = torch.tensor(data=[1, 2, 3])
-t * t == t.mul(t)
-
-# %%
-# Matrix multiplication
-t = torch.tensor(data=[1, 2, 3])
-t @ t == t.matmul(t)
-
-# %% [markdown]
-"""
-## Transpose
-"""
-
-# %%
-tensor_A = torch.tensor(data=[[1, 2], [3, 4], [5, 6]])
-tensor_B = torch.tensor(data=[[7, 10], [8, 11], [9, 12]])
-
-tensor_A.shape, tensor_B.shape
-# tensor_A @ tensor_B # will error
-
-# %%
-# transpose makes the inner dimensions match
-tensor_A, tensor_B.T
-
-# %%
-# transpose makes the inner dimensions match
-tensor_A.shape, tensor_B.T.shape
-
-# %%
-tensor_A @ tensor_B.T
-
-# %% [markdown]
-"""
-### Aggregation
-"""
-
-# %%
-tensor = torch.arange(start=0, end=100, step=10)
-tensor
-
-# %%
-print("Min:", torch.min(tensor))
-print("Max:", torch.max(tensor))
-print("Mean:", torch.mean(tensor.float()))  # won't work without float datattype
-print("Sum:", torch.sum(tensor))
-
-# %%
-# You can call the methods directly on the tensor too
-print("Min:", tensor.min())
-print("Max:", tensor.max())
-print("Mean:", tensor.float().mean())  # won't work without float datattype
-print("Sum:", tensor.sum())
-
-# %% [markdown]
-"""
-### Positional min/max
-"""
-
-# %%
-tensor = torch.arange(start=0, end=100, step=10)
-print("Max index:", torch.argmax(tensor))
-print("Min index:", torch.argmin(tensor))
-
-# %% [markdown]
-"""
-### Changing datatypes
-"""
-
-# %%
-tensor = torch.arange(start=0, end=100, step=10)
-tensor.type(dtype=torch.int8)
-
-# %% [markdown]
-"""
-### Shapes
-"""
-
-# %%
-tensor = torch.arange(start=0, end=10, step=1)
-
-# rehape input to given shape if compatible
-tensor, torch.reshape(input=tensor, shape=(2, 5))
-
-# %%
-# same as reshape, but shares same data as original tensor
-tensor = torch.arange(start=0, end=10, step=1)
-tensor, tensor.view((2, 5))  # alternative to reshape
-
-# %%
-# stack tensor on top of itself 5 times
-stacked = torch.stack([tensor, tensor])
-stacked
-
-# %%
-stacked[0][0] = 2  # only changes the 1st tensor
-stacked
-
-# %% [markdown]
-"""
-### Indexing
-"""
-
-# %%
-tensor = torch.arange(start=1, end=10).reshape(shape=(1, 3, 3))
-print(tensor)
-tensor[0][1][2]  # 6
-
-# %%
-tensor = torch.arange(start=1, end=10).reshape(shape=(1, 3, 3))
-
-# get all values of 0th dimension and 0th index of 1st dimension
-tensor[:, 0]
-
-# %% [markdown]
-"""
-## Numpy
-
-Two main methods you want to use for Numpy to PyTorch (and back again) are:
-
-    1. torch.from_numpy(ndarray) # converts a numpy array to a tensor
-    2. torch.Tensor.numpy()      # converts a tensor to a numpy array
-
-By default Numpy arrays are float64, while PyTorch tensors are float32, so you
-may need to change the datatype.
-"""
+# list named parameters
+model_0.state_dict()
